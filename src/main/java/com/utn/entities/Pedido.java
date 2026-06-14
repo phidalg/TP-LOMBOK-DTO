@@ -1,0 +1,64 @@
+package com.utn.entities;
+
+import com.utn.enums.Estado;
+import com.utn.enums.FormaPago;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@SuperBuilder
+@ToString
+@EqualsAndHashCode(callSuper = true)
+public class Pedido extends Base implements Calculable {
+
+    private Estado estado = Estado.PENDIENTE;
+    @Setter(AccessLevel.NONE)
+    private Double total = 0.0;
+    private LocalDate fecha;
+    private FormaPago formaPago;
+    private final Set<DetallePedido> detalles = new HashSet<DetallePedido>();
+
+    public void addDetallePedido(int cantidad, Producto producto) {
+
+        DetallePedido nuevoDetalle = DetallePedido.builder()
+                .cantidad(cantidad)
+                .producto(producto)
+                .build();
+        if (this.detalles.add(nuevoDetalle)) {
+            calcularTotal();
+        } else {
+            System.out.println(
+                    "No se puede agregar un detalle de pedido para el producto " + producto.getNombre() +
+                    " porque ya existe un detalle del producto referido en este mismo pedido.");
+        }
+    }
+
+    public Optional<DetallePedido> findDetallePedidoByProducto(Producto producto) {
+        return detalles.stream()
+                .filter(d -> d.getProducto().equals(producto))
+                .findFirst();
+    }
+
+    public void deleteDetallePedidoByProducto(Producto producto) {
+        findDetallePedidoByProducto(producto)
+                .ifPresent(detalle -> {
+                    detalles.remove(detalle);
+                    calcularTotal();
+                });
+    }
+
+    public void calcularTotal() {
+        Double total = 0.0;
+        for (DetallePedido detalle : detalles) {
+            total += detalle.getSubtotal();
+        }
+        this.total = total;
+    }
+}
